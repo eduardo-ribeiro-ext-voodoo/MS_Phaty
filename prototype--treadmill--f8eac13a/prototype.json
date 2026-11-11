@@ -1,0 +1,154 @@
+{
+  "name": "Treadmill",
+  "description": "Closed loops of cells under the boxes. Every pick moves every treadmill one cell forward, boxes and gaps alike, so boxes ride into and out of reach.",
+  "howToPlay": "Pick any open box and watch both treadmills step. The white chevrons show where each box goes next. Count picks to bring the box you need into the opening. Hidden boxes show their color once they ride into reach. If nothing can be picked, the treadmills roll on their own until something can.",
+  "author": "Ilayda Arslan",
+  "showcaseLevel": {
+    "name": "Treadmill Showcase",
+    "desc": "Two treadmills: a long loop carrying hidden boxes past an opening, and a small ring turning the other way",
+    "mrbPerBox": 9,
+    "sortCap": 3,
+    "lockButtons": 0,
+    "grid": [
+      {
+        "ci": 4,
+        "type": "default"
+      },
+      {
+        "ci": 5,
+        "type": "default"
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "ci": 4,
+        "type": "default"
+      },
+      null,
+      {
+        "wall": true
+      },
+      null,
+      null,
+      null,
+      {
+        "wall": true
+      },
+      null,
+      {
+        "ci": 5,
+        "type": "default"
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      null,
+      {
+        "wall": true
+      },
+      null,
+      {
+        "ci": 0,
+        "type": "default"
+      },
+      {
+        "ci": 1,
+        "type": "hidden"
+      },
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      {
+        "ci": 3,
+        "type": "default"
+      },
+      {
+        "ci": 0,
+        "type": "hidden"
+      },
+      {
+        "wall": true
+      },
+      null,
+      {
+        "ci": 3,
+        "type": "default"
+      },
+      null,
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      {
+        "ci": 1,
+        "type": "default"
+      },
+      null,
+      {
+        "wall": true
+      },
+      null,
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      null,
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      null,
+      {
+        "ci": 1,
+        "type": "default"
+      },
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      null,
+      {
+        "ci": 3,
+        "type": "default"
+      },
+      {
+        "ci": 0,
+        "type": "default"
+      },
+      null
+    ],
+    "treadmills": [
+      [
+        22,
+        23,
+        24,
+        25,
+        26,
+        33,
+        32,
+        31,
+        30,
+        29
+      ],
+      [
+        7,
+        14,
+        15,
+        8
+      ]
+    ]
+  }
+}
