@@ -186,6 +186,13 @@ function drawStock() {
     var ps = 1 + b.popT * 0.15 + breathe;
     var hs = 1 + b.hoverT * 0.05;
     var ts = ps * hs;
+    // Treadmill: boxes sit a little smaller so the belt shows around them;
+    // empty / used cells on the belt draw nothing (the belt is the floor).
+    var onTm = tmIsCell(i);
+    if (onTm) {
+      if (b.empty || b.used) continue;
+      ts *= TM_BOX_SCALE;
+    }
 
     // Empty slot
     if (b.empty) { drawEmptySlot(b.x, b.y, L.bw, L.bh); continue; }
@@ -202,7 +209,8 @@ function drawStock() {
     // Used box (fully empty)
     if (b.used) { drawEmptySlot(b.x, b.y, L.bw, L.bh); continue; }
 
-    var bt = getBoxType(b.boxType);
+    // A Hidden box that has been seen keeps showing its color (as a closed box)
+    var bt = getBoxType((!b.revealed && b.seen && b.boxType === 'hidden') ? 'default' : b.boxType);
     ctx.save();
     ctx.translate(b.x + L.bw / 2 + ox, b.y + L.bh / 2); ctx.scale(ts, ts);
 

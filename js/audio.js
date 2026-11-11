@@ -24,6 +24,10 @@ var sfx = {
   drop: function () { tone(400, 0.08, 'sine', 0.04, 200); },
   sort: function () { tone(600, 0.1, 'triangle', 0.1); setTimeout(function () { tone(900, 0.1, 'triangle', 0.1); }, 80); },
   complete: function () { [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { tone(f, 0.2, 'sine', 0.1); }, i * 90); }); },
+  // Treadmill: one soft mechanical clack per step (shared beat for all loops)
+  tmStep: function () { tone(180, 0.07, 'square', 0.035, 90); setTimeout(function () { tone(260, 0.05, 'triangle', 0.05, 140); }, 40); },
+  // Treadmill catch-up: a distinct rising tick so auto-steps don't feel random
+  tmCatchup: function () { tone(520, 0.06, 'triangle', 0.06, 900); },
   win: function () { [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { setTimeout(function () { tone(f, 0.25, 'sine', 0.12); }, i * 100); }); }
 };
 

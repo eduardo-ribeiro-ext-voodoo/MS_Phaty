@@ -142,6 +142,9 @@ function initGame() {
     }
   }
 
+  // ── Treadmill loops (under the boxes) ──
+  tmInit(lvl);
+
   // ── Reveal boxes that currently have an open path to the bottom ──
   updateBoxReveals(false);
 
@@ -170,15 +173,15 @@ function initGame() {
 //   • used-up boxes
 // Walls, active (non-used) boxes, and tunnels (even depleted ones)
 // all block the path. If the path closes, the box closes itself.
-function updateBoxReveals(animate) {
-  if (!stock || stock.length === 0) return;
-  if (!L || !L.rows || !L.cols) return;
-  var total = stock.length;
+// Returns an array: open[i] is true when cell i has a path to the bottom.
+// Works on any stock-like array (the treadmill uses it to look ahead).
+function computeOpenCells(cells) {
+  var total = cells.length;
 
   // 1. Mark which cells are passable.
   var passable = new Array(total);
   for (var i = 0; i < total; i++) {
-    var s = stock[i];
+    var s = cells[i];
     if (!s) { passable[i] = false; continue; }
     if (s.isWall) { passable[i] = false; continue; }
     if (s.isTunnel) { passable[i] = false; continue; }
@@ -214,15 +217,10 @@ function updateBoxReveals(animate) {
     }
   }
 
-  // 3. For each active box, open it iff a passable neighbor reaches
-  //    the bottom (or the box is itself in the bottom row, sitting
-  //    on the lower edge). Close boxes whose path is now blocked.
+  // 3. A cell is open iff it is in the bottom row (sitting on the
+  //    lower edge) or a passable neighbor reaches the bottom.
+  var open = new Array(total);
   for (var k = 0; k < total; k++) {
-    var b = stock[k];
-    if (!b) continue;
-    if (b.isWall || b.isTunnel || b.empty || b.used) continue;
-    if (b.spawning) continue;
-
     var br = Math.floor(k / L.cols), bcol = k % L.cols;
     var hasPath = false;
     if (br === L.rows - 1) {
@@ -237,9 +235,32 @@ function updateBoxReveals(animate) {
         if (reachable[bnbrs[m]]) { hasPath = true; break; }
       }
     }
+    open[k] = hasPath;
+  }
+  return open;
+}
+
+function updateBoxReveals(animate) {
+  if (!stock || stock.length === 0) return;
+  if (!L || !L.rows || !L.cols) return;
+  // Treadmill: reveals are judged only once the belt has stopped.
+  if (tmRevealLocked()) return;
+  var total = stock.length;
+  var open = computeOpenCells(stock);
+
+  // Open each active box iff its cell is open; close boxes whose
+  // path is now blocked.
+  for (var k = 0; k < total; k++) {
+    var b = stock[k];
+    if (!b) continue;
+    if (b.isWall || b.isTunnel || b.empty || b.used) continue;
+    if (b.spawning) continue;
+
+    var hasPath = open[k];
 
     if (hasPath && !b.revealed) {
       b.revealed = true;
+      b.seen = true;   // a Hidden box keeps showing its color once seen
       if (animate) {
         b.revealT = 1.0;
         var bx = b.x + L.bw / 2, by = b.y + L.bh / 2;
@@ -333,12 +354,15 @@ function handleTap(px, py) {
     if (b.isTunnel || b.isWall) continue;  // skip tunnels and walls in tap handler
     if (b.empty || b.used || b.spawning || b.revealT > 0) continue;
     if (px >= b.x && px <= b.x + L.bw && py >= b.y && py <= b.y + L.bh) {
+      // Treadmill sliding: taps are blocked; a small wobble so the tap doesn't feel lost
+      if (tmBusy()) { b.shakeT = Math.max(b.shakeT, 0.3); return; }
       if (!isBoxTappable(i)) { b.shakeT = 0.5; return; }
       b.popT = 1;
       sfx.pop();
       spawnBurst(b.x + L.bw / 2, b.y + L.bh / 2, COLORS[b.ci].fill, 18);
       spawnPhysMarbles(b);
-      damageAdjacentIce(i);
+      damageAdjacentIce(i);   // judged on positions from before the treadmill moves
+      tmOnPick();             // every treadmill steps once the pick has resolved
       return;
     }
   }
@@ -371,8 +395,11 @@ function update() {
     if (beltSlots[i].arriveAnim > 0) beltSlots[i].arriveAnim = Math.max(0, beltSlots[i].arriveAnim - 0.025);
   }
 
-  // ── Tunnel spawning ──
-  trySpawnFromTunnels();
+  // ── Treadmill (slide / step after a pick / catch-up) ──
+  tmUpdate();
+
+  // ── Tunnel spawning (held while a treadmill moves) ──
+  if (!tmBusy()) trySpawnFromTunnels();
 
   // Belt → sort matching
   for (var si = 0; si < BELT_SLOTS; si++) {
@@ -544,6 +571,7 @@ function frame() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
     drawFunnel();
+    drawTreadmills();
     drawStock();
     drawPhysMarbles();
     drawBelt();
@@ -552,6 +580,7 @@ function frame() {
     drawSortArea();
     drawBackButton();
     drawParticles();
+    drawTreadmillOverlay();
     drawDebugWalls();
   }
   requestAnimationFrame(frame);

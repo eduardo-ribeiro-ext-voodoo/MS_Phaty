@@ -96,6 +96,9 @@ function physicsStep() {
 
 function spawnPhysMarbles(box) {
   box.spawning = true; box.spawnIdx = 0;
+  // Marbles leave from the cell where the box was picked, even if a
+  // treadmill carries the box's art away while it drains.
+  var originX = box.x, originY = box.y;
   var count = box.remaining;
   var blockerCount = box.blockerCount || 0;
   var blockerStart = MRB_PER_BOX - blockerCount;
@@ -110,8 +113,8 @@ function spawnPhysMarbles(box) {
         var MR = getMR();
         var mg = Math.min(14 * S, L.bw / 4.2);
         var mgY = mg * MRB_GAP_FACTOR;
-        var mx = b.x + L.bw / 2 + (si.c - 1) * mg;
-        var my = b.y + L.bh / 2 + (si.r - 1) * mgY - 2 * S;
+        var mx = originX + L.bw / 2 + (si.c - 1) * mg;
+        var my = originY + L.bh / 2 + (si.r - 1) * mgY - 2 * S;
         var vx = (Math.random() - 0.5) * 2 * S;
         var vy = -(2 + Math.random() * 2) * S;
         var marbleCi = (blockerCount > 0 && spawnIdx >= bStart) ? BLOCKER_CI : b.ci;

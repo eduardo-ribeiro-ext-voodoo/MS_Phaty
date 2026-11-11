@@ -17,6 +17,10 @@ var editor = {
   tunnelDir: 'bottom',  // current tunnel direction for new tunnels
   selectedTunnel: -1,   // index of selected tunnel for content editing
   wallMode: false,      // true when placing walls
+  treadmills: [],       // closed loops: arrays of cell indices in travel order
+  tmMode: false,        // true when drawing treadmills
+  tmDraft: [],          // loop currently being drawn
+  tmSelected: -1,       // index of selected treadmill loop
   visible: false
 };
 
@@ -34,6 +38,10 @@ function editorInit() {
   editor.tunnelDir = 'bottom';
   editor.selectedTunnel = -1;
   editor.wallMode = false;
+  editor.treadmills = [];
+  editor.tmMode = false;
+  editor.tmDraft = [];
+  editor.tmSelected = -1;
 }
 
 function showEditor(fresh) {
@@ -95,6 +103,7 @@ function editorRenderGrid() {
       cell.style.background = 'rgba(180,165,145,0.25)';
       cell.style.borderColor = 'rgba(160,140,120,0.3)';
     }
+    editorTmDecorate(cell, i);
     cell.setAttribute('data-idx', i);
     cell.addEventListener('click', editorCellClick);
     cell.addEventListener('contextmenu', editorCellErase);
@@ -104,6 +113,14 @@ function editorRenderGrid() {
 
 function editorCellClick(e) {
   var idx = parseInt(e.currentTarget.getAttribute('data-idx'));
+
+  if (editor.tmMode) { editorTmClick(idx); return; }
+
+  if ((editor.wallMode || (editor.tunnelMode && editor.activeColor !== -1)) && editorTmLoopOf(idx) >= 0 &&
+      !(editor.grid[idx] && (editor.grid[idx].wall || editor.grid[idx].tunnel))) {
+    editorShowToast(editor.wallMode ? 'Walls can\'t sit on a treadmill' : 'Tunnels can\'t sit on a treadmill');
+    return;
+  }
 
   if (editor.wallMode) {
     // Wall placement mode
@@ -178,13 +195,14 @@ function editorRenderToolbar() {
     var id = BoxTypeOrder[t];
     var bt = BoxTypes[id];
     var tb = document.createElement('button');
-    tb.className = 'ed-type-btn' + (!editor.tunnelMode && !editor.wallMode && editor.activeType === id ? ' active' : '');
+    tb.className = 'ed-type-btn' + (!editor.tunnelMode && !editor.wallMode && !editor.tmMode && editor.activeType === id ? ' active' : '');
     tb.textContent = bt.label;
     tb.setAttribute('data-type', id);
     tb.addEventListener('click', function () {
       editor.activeType = this.getAttribute('data-type');
       editor.tunnelMode = false;
       editor.wallMode = false;
+      editor.tmMode = false;
       editorRenderToolbar();
       editorRenderTunnelPanel();
     });
@@ -200,6 +218,7 @@ function editorRenderToolbar() {
   wallBtn.addEventListener('click', function () {
     editor.wallMode = true;
     editor.tunnelMode = false;
+    editor.tmMode = false;
     editorRenderToolbar();
     editorRenderTunnelPanel();
   });
@@ -214,14 +233,32 @@ function editorRenderToolbar() {
   tunnelBtn.addEventListener('click', function () {
     editor.tunnelMode = true;
     editor.wallMode = false;
+    editor.tmMode = false;
     editorRenderToolbar();
     editorRenderTunnelPanel();
   });
   typeRow.appendChild(tunnelBtn);
 
+  // Treadmill mode button
+  var tmBtn = document.createElement('button');
+  tmBtn.className = 'ed-type-btn' + (editor.tmMode ? ' active' : '');
+  tmBtn.textContent = '\u27F3 Treadmill';
+  tmBtn.style.borderColor = editor.tmMode ? 'rgba(47,140,150,0.7)' : '';
+  tmBtn.style.color = editor.tmMode ? '#2F8C96' : '';
+  tmBtn.addEventListener('click', function () {
+    editor.tmMode = true;
+    editor.tunnelMode = false;
+    editor.wallMode = false;
+    editorRenderToolbar();
+    editorRenderTunnelPanel();
+  });
+  typeRow.appendChild(tmBtn);
+
   el.appendChild(typeRow);
 
-  if (editor.tunnelMode) {
+  if (editor.tmMode) {
+    el.appendChild(editorTmPanel());
+  } else if (editor.tunnelMode) {
     // Direction selector row
     var dirRow = document.createElement('div');
     dirRow.className = 'ed-color-row';
@@ -430,6 +467,7 @@ function editorRenderTunnelPanel() {
 function editorFillRandom() {
   for (var i = 0; i < 49; i++) editor.grid[i] = null;
   editor.selectedTunnel = -1;
+  editor.treadmills = []; editor.tmDraft = []; editor.tmSelected = -1;
   var cl = [];
   for (var c = 0; c < 4; c++) for (var n = 0; n < 6; n++) cl.push(c);
   shuffle(cl);
@@ -442,6 +480,8 @@ function editorFillRandom() {
 function editorClearAll() {
   for (var i = 0; i < 49; i++) editor.grid[i] = null;
   editor.selectedTunnel = -1;
+  editor.treadmills = []; editor.tmDraft = []; editor.tmSelected = -1;
+  editorRenderToolbar();
   editorRenderGrid(); editorUpdateStats(); editorRenderTunnelPanel();
 }
 
@@ -503,6 +543,11 @@ function editorUpdateStats() {
   if (tunnelCount > 0) {
     html += '<span class="ed-stat-chip" style="background:#3D3548;border:1px solid #6A6070">' + tunnelCount + ' tunnel' + (tunnelCount > 1 ? 's' : '') + ' (' + tunnelBoxCount + ' stored)</span>';
   }
+  var tmCells = 0;
+  for (var tl = 0; tl < editor.treadmills.length; tl++) tmCells += editor.treadmills[tl].length;
+  if (editor.treadmills.length > 0) {
+    html += '<span class="ed-stat-chip" style="background:#2F545C">' + editor.treadmills.length + ' treadmill' + (editor.treadmills.length > 1 ? 's' : '') + ' (' + tmCells + ' cells)</span>';
+  }
   if (totalBlockers > 0) {
     html += '<span class="ed-stat-chip" style="background:' + COLORS[BLOCKER_CI].fill + '">' + totalBlockers + ' blocker mrb</span>';
   }
@@ -526,6 +571,7 @@ function editorUpdateStats() {
       warn = 'Total blocker marbles (' + totalBlockers + ') must be a multiple of 3';
     }
   }
+  if (!warn) warn = editorTmWarning(tmCells);
   if (warn) html += '<span class="ed-stat-warn">' + warn + '</span>';
   el.innerHTML = html;
 }
@@ -567,7 +613,8 @@ function editorBuildLevel() {
     name: editor.name, desc: editor.desc,
     mrbPerBox: editor.mrbPerBox, sortCap: editor.sortCap,
     lockButtons: editor.lockButtons,
-    grid: editor.grid.slice()
+    grid: editor.grid.slice(),
+    treadmills: editor.treadmills.map(function (l) { return l.slice(); })
   };
 }
 
@@ -620,6 +667,13 @@ function editorImportJSON() {
           else if (cell.wall) editor.grid[i] = { wall: true };
           else if (cell.tunnel) editor.grid[i] = { tunnel: true, dir: cell.dir || 'bottom', contents: cell.contents || [] };
           else editor.grid[i] = cell;
+        }
+      }
+      editor.treadmills = [];
+      editor.tmDraft = []; editor.tmSelected = -1;
+      if (lvl.treadmills) {
+        for (var tli = 0; tli < lvl.treadmills.length; tli++) {
+          if (!tmLoopError(lvl.treadmills[tli], 7)) editor.treadmills.push(lvl.treadmills[tli].slice());
         }
       }
       if (lvl.mrbPerBox) editor.mrbPerBox = lvl.mrbPerBox;
@@ -688,3 +742,136 @@ function editorSaveShowcase() {
 
 function editorSetName(val) { editor.name = val; }
 function editorSetDesc(val) { editor.desc = val; }
+
+
+// ── Treadmill drawing (editor) ──
+
+function editorTmLoopOf(idx) {
+  for (var l = 0; l < editor.treadmills.length; l++) if (editor.treadmills[l].indexOf(idx) >= 0) return l;
+  return -1;
+}
+
+function editorTmRefresh() {
+  editorRenderGrid();
+  editorRenderToolbar();
+  editorUpdateStats();
+}
+
+function editorTmClick(idx) {
+  var g = editor.grid[idx];
+  var d = editor.tmDraft;
+  var blocked = g && (g.wall || g.tunnel);
+
+  if (d.length === 0) {
+    var li = editorTmLoopOf(idx);
+    if (li >= 0) { editor.tmSelected = (editor.tmSelected === li ? -1 : li); editorTmRefresh(); return; }
+    if (editor.treadmills.length >= TM_MAX_LOOPS) { editorShowToast('Max ' + TM_MAX_LOOPS + ' treadmills per level'); return; }
+    if (blocked) { editorShowToast('Treadmills can\'t go on walls or tunnels'); return; }
+    d.push(idx); editor.tmSelected = -1;
+    editorTmRefresh();
+    return;
+  }
+
+  var last = d[d.length - 1];
+  if (idx === last) { d.pop(); editorTmRefresh(); return; }       // undo last cell
+  if (idx === d[0]) {                                              // close the loop
+    if (d.length < 4) { editorShowToast('A treadmill needs at least 4 cells'); return; }
+    if (!tmAdjacent(last, idx, 7)) { editorShowToast('Close the loop from a cell next to the first one'); return; }
+    editor.treadmills.push(d.slice());
+    editor.tmDraft = [];
+    editor.tmSelected = editor.treadmills.length - 1;
+    editorShowToast('Treadmill loop closed!');
+    editorTmRefresh();
+    return;
+  }
+  if (d.indexOf(idx) >= 0) { editorShowToast('A treadmill can\'t cross itself'); return; }
+  if (editorTmLoopOf(idx) >= 0) { editorShowToast('Two treadmills can\'t share a cell'); return; }
+  if (blocked) { editorShowToast('Treadmills can\'t go on walls or tunnels'); return; }
+  if (!tmAdjacent(last, idx, 7)) { editorShowToast('Each step goes up, down, left or right from the last cell'); return; }
+  d.push(idx);
+  editorTmRefresh();
+}
+
+function editorTmPanel() {
+  var row = document.createElement('div');
+  row.className = 'ed-color-row';
+  row.style.flexWrap = 'wrap';
+  row.style.justifyContent = 'center';
+  var hint = document.createElement('span');
+  hint.style.cssText = 'font-size:11px;color:#9C8A70;max-width:300px;text-align:center';
+  var btns = [];
+  if (editor.tmDraft.length > 0) {
+    hint.textContent = 'Drawing (' + editor.tmDraft.length + ' cells): click the next cell in travel order. Click the first cell to close the loop, the last cell to undo.';
+    btns.push({ label: 'Cancel', fn: function () { editor.tmDraft = []; editorTmRefresh(); } });
+  } else if (editor.tmSelected >= 0 && editor.treadmills[editor.tmSelected]) {
+    var sel = editor.treadmills[editor.tmSelected];
+    hint.textContent = 'Treadmill ' + (editor.tmSelected + 1) + ' (' + sel.length + ' cells) selected.';
+    btns.push({ label: '⇄ Reverse', fn: function () { editor.treadmills[editor.tmSelected].reverse(); editorTmRefresh(); } });
+    btns.push({ label: '✖ Delete loop', fn: function () { editor.treadmills.splice(editor.tmSelected, 1); editor.tmSelected = -1; editorTmRefresh(); } });
+  } else {
+    hint.textContent = 'Click a cell to start a loop, then click cells in the order boxes travel. Click a loop to select it. Place boxes on it with the box tools.';
+  }
+  row.appendChild(hint);
+  for (var b = 0; b < btns.length; b++) {
+    var bt = document.createElement('button');
+    bt.className = 'ed-type-btn';
+    bt.textContent = btns[b].label;
+    bt.addEventListener('click', btns[b].fn);
+    row.appendChild(bt);
+  }
+  return row;
+}
+
+function editorTmDecorate(cell, i) {
+  var li = editorTmLoopOf(i);
+  var dk = editor.tmDraft.indexOf(i);
+  if (li < 0 && dk < 0) return;
+  var isDraft = li < 0;
+  var loop = isDraft ? editor.tmDraft : editor.treadmills[li];
+  var k = loop.indexOf(i);
+  var selected = !isDraft && li === editor.tmSelected;
+  cell.style.boxShadow = (selected ? '0 0 0 2px #7FE3DA, ' : '') + 'inset 0 0 0 3px ' + (isDraft ? 'rgba(127,227,218,0.8)' : '#2F545C');
+  if (!editor.grid[i]) cell.style.background = isDraft ? 'rgba(47,84,92,0.45)' : 'linear-gradient(135deg,#3A646C,#24434A)';
+  var next = isDraft ? (k < loop.length - 1 ? loop[k + 1] : -1) : loop[(k + 1) % loop.length];
+  if (next >= 0) {
+    var dr = Math.floor(next / 7) - Math.floor(i / 7), dc = (next % 7) - (i % 7);
+    var arrow = document.createElement('span');
+    var pos = dc === 1 ? 'right:-8px;top:50%;margin-top:-8px' : dc === -1 ? 'left:-8px;top:50%;margin-top:-8px'
+      : dr === 1 ? 'bottom:-8px;left:50%;margin-left:-6px' : 'top:-8px;left:50%;margin-left:-6px';
+    var rot = dc === 1 ? 0 : dc === -1 ? 180 : dr === 1 ? 90 : -90;
+    arrow.style.cssText = 'position:absolute;' + pos + ';width:12px;height:16px;line-height:16px;text-align:center;' +
+      'font-size:16px;font-weight:900;color:#7FE3DA;text-shadow:0 0 2px #10282C,0 0 2px #10282C;z-index:2;pointer-events:none;' +
+      'transform:rotate(' + rot + 'deg)';
+    arrow.textContent = '›';
+    cell.appendChild(arrow);
+  }
+  if (isDraft) {
+    var num = document.createElement('span');
+    num.style.cssText = 'position:absolute;top:1px;left:3px;font-size:8px;font-weight:700;color:#7FE3DA;pointer-events:none';
+    num.textContent = (k + 1);
+    cell.appendChild(num);
+  }
+}
+
+function editorTmWarning(tmCells) {
+  if (editor.tmDraft.length > 0) return 'Finish (close) the treadmill loop you are drawing';
+  if (tmCells > TM_MAX_CELLS) return 'More than ' + TM_MAX_CELLS + ' treadmill cells in one level';
+  for (var l = 0; l < editor.treadmills.length; l++) {
+    var loop = editor.treadmills[l], fed = false;
+    for (var k = 0; k < loop.length; k++) {
+      var g = editor.grid[loop[k]];
+      if (g && g.ci >= 0 && !g.tunnel && !g.wall) { fed = true; break; }
+    }
+    if (!fed) {
+      for (var i = 0; i < 49 && !fed; i++) {
+        var t = editor.grid[i];
+        if (!t || !t.tunnel) continue;
+        var r = Math.floor(i / 7), c = i % 7;
+        if (t.dir === 'top') r--; else if (t.dir === 'bottom') r++; else if (t.dir === 'left') c--; else c++;
+        if (r >= 0 && r < 7 && c >= 0 && c < 7 && loop.indexOf(r * 7 + c) >= 0) fed = true;
+      }
+    }
+    if (!fed) return 'Treadmill ' + (l + 1) + ' has no boxes and no tunnel facing it';
+  }
+  return '';
+}
