@@ -160,6 +160,9 @@ function initGame() {
     var lockRow = Math.min(2 + Math.floor(Math.random() * 4), sortCols[lockCol].length);
     sortCols[lockCol].splice(lockRow, 0, { type: 'lock', ci: -1, filled: 0, popT: 0, vis: true, shineT: 0, squishT: 0, triggerT: 0, triggered: false });
   }
+
+  // Rabbit & Carrot prototype
+  rabbitInit(lvl);
 }
 
 // === REVEAL — PATH TO BOTTOM ===
@@ -339,6 +342,7 @@ function handleTap(px, py) {
       spawnBurst(b.x + L.bw / 2, b.y + L.bh / 2, COLORS[b.ci].fill, 18);
       spawnPhysMarbles(b);
       damageAdjacentIce(i);
+      rabbitOnBoxOpened(b);
       return;
     }
   }
@@ -382,6 +386,7 @@ function update() {
       var col = sortCols[c]; var tv = -1;
       for (var r = 0; r < col.length; r++) { if (col[r].vis) { tv = r; break; } }
       if (tv < 0 || col[tv].ci !== slot.marble) continue;
+      if (rabbitHoldsCustomer(col[tv])) continue;   // the Rabbit's customer takes no new marbles
       var inFlight = 0;
       for (var j = 0; j < jumpers.length; j++) if (jumpers[j].targetCol === c) inFlight++;
       if (col[tv].filled + inFlight >= SORT_CAP) continue;
@@ -514,6 +519,7 @@ function update() {
     if (box.type === 'lock' && box.triggerT > 0) box.triggerT = Math.max(0, box.triggerT - 0.03);
   }
 
+  rabbitUpdate();
   tickParticles();
   updateRollingSound();
 }
@@ -550,6 +556,7 @@ function frame() {
     drawBlockerProgress();
     drawJumpers();
     drawSortArea();
+    drawRabbitLayer();
     drawBackButton();
     drawParticles();
     drawDebugWalls();

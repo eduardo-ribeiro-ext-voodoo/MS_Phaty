@@ -1,0 +1,140 @@
+{
+  "name": "Rabbit & Carrot",
+  "description": "A Rabbit sits on a front customer and blocks it (it keeps its marbles but takes no new ones). Every box you open makes it hop to the next column, back and forth. Opening a Carrot box sends the Carrot to the Rabbit: it catches it and retreats to the 4th customer of its column until that customer reaches the front. The last Carrot sends it off the level.",
+  "howToPlay": "Open boxes from the bottom of the block and watch the Rabbit hop between the customers. Plan your taps so it does not sit on the customer you need. Dig to the three Carrot boxes (two in the middle row, one in the top row) to push the Rabbit back; the last Carrot sends it away. Level Editor: the Carrot box type puts a Carrot on a box, and the Rabbit Lane setting picks its start column (-1 = no Rabbit).",
+  "author": "",
+  "showcaseLevel": {
+    "name": "Rabbit & Carrot",
+    "desc": "Open the boxes; mind the Rabbit; dig to the Carrots.",
+    "mrbPerBox": 9,
+    "sortCap": 3,
+    "lockButtons": 0,
+    "rabbitLane": 3,
+    "grid": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      {
+        "ci": 3,
+        "type": "carrot"
+      },
+      {
+        "ci": 4,
+        "type": "default"
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "ci": 4,
+        "type": "default"
+      },
+      {
+        "ci": 0,
+        "type": "default"
+      },
+      {
+        "ci": 1,
+        "type": "default"
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "ci": 1,
+        "type": "carrot"
+      },
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      {
+        "ci": 3,
+        "type": "carrot"
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "ci": 3,
+        "type": "default"
+      },
+      {
+        "ci": 4,
+        "type": "default"
+      },
+      {
+        "ci": 0,
+        "type": "default"
+      },
+      {
+        "wall": true
+      },
+      null,
+      null,
+      {
+        "wall": true
+      },
+      {
+        "ci": 0,
+        "type": "default"
+      },
+      {
+        "ci": 1,
+        "type": "default"
+      },
+      {
+        "ci": 2,
+        "type": "default"
+      },
+      {
+        "wall": true
+      },
+      null
+    ]
+  }
+}
