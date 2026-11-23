@@ -147,12 +147,15 @@ function initGame() {
 
   // ── Sort columns ──
   var triCustomers = buildTriCustomers(sortPerColor, lvl.triColor || 0);
-  var allBoxes = triCustomers.slice();
+  var allBoxes = [];
   for (var c = 0; c < NUM_COLORS; c++) for (var r = 0; r < sortPerColor[c]; r++)
     allBoxes.push({ ci: c, filled: 0, popT: 0, vis: true, shineT: 0, squishT: 0 });
   shuffle(allBoxes);
   sortCols = [[], [], [], []];
   for (var i = 0; i < allBoxes.length; i++) sortCols[i % 4].push(allBoxes[i]);
+  placeTriCustomers(triCustomers,
+    lvl.triStartRow !== undefined ? lvl.triStartRow : TRI_DEFAULT_START_ROW,
+    lvl.triSpread !== undefined ? lvl.triSpread : TRI_DEFAULT_SPREAD);
 
   // Lock buttons
   var numLocks = lvl.lockButtons || 0;
@@ -571,6 +574,38 @@ function frame() {
 
 // === PROTOTYPE.JSON LOADER ===
 var prototypeInfo = null;  // loaded from prototype.json if present
+var publishedShowcase = null; // showcase level from prototype.json
+var showcaseIdx = -1;         // index of the showcase level in LEVELS
+var showcaseIsLocal = false;  // true when a showcase saved in this browser is used
+
+// Saved showcase is kept per prototype URL (all prototypes share one origin)
+function showcaseStorageKey() { return 'phaty-showcase:' + location.pathname; }
+function readSavedShowcase() {
+  try { var raw = localStorage.getItem(showcaseStorageKey()); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+
+// Called by the editor's "Save as Showcase": the level becomes this
+// browser's showcase right away (and after reloads).
+function setLocalShowcase(level) {
+  try { localStorage.setItem(showcaseStorageKey(), JSON.stringify(level)); } catch (e) {}
+  if (!prototypeInfo) prototypeInfo = {};
+  prototypeInfo.showcaseLevel = level;
+  showcaseIsLocal = true;
+  if (showcaseIdx >= 0 && showcaseIdx < LEVELS.length) { LEVELS[showcaseIdx] = level; levelStars[showcaseIdx] = 0; }
+  else { showcaseIdx = LEVELS.length; LEVELS.push(level); levelStars.push(0); }
+  unlockedLevels = LEVELS.length;
+  updateShowcaseUI();
+}
+
+function resetShowcase() {
+  try { localStorage.removeItem(showcaseStorageKey()); } catch (e) {}
+  showcaseIsLocal = false;
+  if (!prototypeInfo) return;
+  prototypeInfo.showcaseLevel = publishedShowcase;
+  if (showcaseIdx >= 0 && publishedShowcase) LEVELS[showcaseIdx] = publishedShowcase;
+  updateShowcaseUI();
+}
 
 function loadPrototypeJSON(callback) {
   fetch('prototype.json').then(function(r) {
@@ -578,8 +613,13 @@ function loadPrototypeJSON(callback) {
     return r.json();
   }).then(function(data) {
     prototypeInfo = data;
-    if (data.showcaseLevel && data.showcaseLevel.grid) {
-      LEVELS.push(data.showcaseLevel);
+    publishedShowcase = data.showcaseLevel || null;
+    // A showcase saved from the editor in this browser replaces the published one
+    var saved = readSavedShowcase();
+    if (saved && saved.grid) { prototypeInfo.showcaseLevel = saved; showcaseIsLocal = true; }
+    if (prototypeInfo.showcaseLevel && prototypeInfo.showcaseLevel.grid) {
+      showcaseIdx = LEVELS.length;
+      LEVELS.push(prototypeInfo.showcaseLevel);
       levelStars.push(0);
       unlockedLevels = LEVELS.length;
     }
@@ -591,13 +631,15 @@ function loadPrototypeJSON(callback) {
 
 function playShowcase() {
   if (!prototypeInfo || !prototypeInfo.showcaseLevel) return;
-  var idx = LEVELS.length - 1; // showcase level is always last added
-  startLevel(idx);
+  if (showcaseIdx < 0) return;
+  startLevel(showcaseIdx);
 }
 
 function updateShowcaseUI() {
   var btn = document.getElementById('ls-showcase-btn');
   var info = document.getElementById('ls-showcase-info');
+  var note = document.getElementById('ls-local-note');
+  if (note) note.style.display = showcaseIsLocal ? 'block' : 'none';
   if (!prototypeInfo || !prototypeInfo.showcaseLevel) {
     if (btn) btn.style.display = 'none';
     if (info) info.style.display = 'none';

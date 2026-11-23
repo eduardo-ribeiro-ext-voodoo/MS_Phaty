@@ -58,6 +58,9 @@ var SORT_VISIBLE_ROWS = 4;
 
 // Tri-Colored Customers: standalone 1x3 customers made per color set
 var TRI_ROWS = 3;
+// Placement defaults: rows counted from the front of the lane (1 = front)
+var TRI_DEFAULT_SPREAD = 4;     // customers of one set sit at most this many rows after its first one
+var TRI_DEFAULT_START_ROW = 1;  // row of each set's first customer
 
 // Snake order for 3x3 grid
 var SNAKE_ORDER = [

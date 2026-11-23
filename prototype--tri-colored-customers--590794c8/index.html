@@ -206,6 +206,10 @@
     <button class="ls-editor-btn" onclick="showEditor()"><span style="font-size:22px">&#9998;</span> Level Editor</button>
     <button class="ls-editor-btn ls-import-btn" onclick="showEditor(); setTimeout(editorImportJSON, 100)"><span style="font-size:22px">&#128229;</span> Import Level</button>
   </div>
+  <div id="ls-local-note" style="display:none;font-size:12px;color:#9C8A70;text-align:center;margin-top:14px;max-width:320px">
+    Showcase = level saved from the editor in this browser.<br>
+    <a href="#" onclick="resetShowcase(); return false;" style="color:#7B52A0">Back to the published level</a>
+  </div>
 </div>
 <div id="editor-screen" class="hidden">
   <div class="ed-header">
