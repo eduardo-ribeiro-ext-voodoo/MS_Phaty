@@ -34,32 +34,31 @@ function buildTriCustomers(sortPerColor, sets) {
 
 // ── Place the tri customers into the lanes ──
 // Rows are queue positions counted from the front (row 1 = front).
-// The first customer of every set goes to startRow; the other customers
-// of the set go to a random row from startRow to startRow + spread, in a
-// random lane. Two tri customers never share the same lane and row.
+// Groups are placed one after another: the first group's first customer
+// goes to startRow; every next group starts on the row right after the
+// last (deepest) customer of the group before it. Inside a group, the
+// other customers go to a random row from the group's start row to
+// start + spread, in a random lane (never the same lane and row twice).
 function placeTriCustomers(list, startRow, spread) {
-  var start = Math.max(0, startRow - 1);          // 0-based row index
   var taken = {};                                  // 'lane:row' → true
   var placed = [];                                 // { box, lane, row }
-  var sets = {};
+  var sets = [], byKey = {};
   for (var i = 0; i < list.length; i++) {
     var k = list[i].triSet;
-    if (!sets[k]) sets[k] = [];
-    sets[k].push(list[i]);
+    if (!byKey[k]) { byKey[k] = []; sets.push(byKey[k]); }
+    byKey[k].push(list[i]);
   }
-  // Every set's first customer is placed before any other customer, so the
-  // start row is kept free for the first customers.
-  for (var m = 0; m < TRI_ROWS; m++) {
-    for (var key in sets) {
-      var members = sets[key];
-      if (m >= members.length) continue;
-      // Candidate cells: first customer only at the start row, others in the window
-      var rowLo = start, rowHi = (m === 0) ? start : start + Math.max(0, spread);
+  var groupStart = Math.max(0, startRow - 1);      // 0-based row index
+  for (var g = 0; g < sets.length; g++) {
+    var members = sets[g];
+    var deepest = groupStart;
+    for (var m = 0; m < members.length; m++) {
+      var rowHi = (m === 0) ? groupStart : groupStart + Math.max(0, spread);
       var cells = [];
-      for (var r = rowLo; r <= rowHi; r++)
+      for (var r = groupStart; r <= rowHi; r++)
         for (var lane = 0; lane < 4; lane++)
           if (!taken[lane + ':' + r]) cells.push({ lane: lane, row: r });
-      // Window full (e.g. many sets on the same rows): take the next free row after it
+      // Window full: take the next free row after it
       var r2 = rowHi + 1;
       while (cells.length === 0) {
         for (var lane2 = 0; lane2 < 4; lane2++)
@@ -69,7 +68,9 @@ function placeTriCustomers(list, startRow, spread) {
       var pick = cells[Math.floor(Math.random() * cells.length)];
       taken[pick.lane + ':' + pick.row] = true;
       placed.push({ box: members[m], lane: pick.lane, row: pick.row });
+      if (pick.row > deepest) deepest = pick.row;
     }
+    groupStart = deepest + 1;
   }
   // Insert front-to-back so earlier inserts keep their row
   placed.sort(function (a, b) { return a.row - b.row; });

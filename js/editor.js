@@ -13,7 +13,7 @@ var editor = {
   lockButtons: 0,
   triColor: 0,         // number of Tri-Colored Customer sets (3 customers each)
   triSpread: TRI_DEFAULT_SPREAD,     // max rows between customers of one set
-  triStartRow: TRI_DEFAULT_START_ROW, // row of each set's first customer (1 = front)
+  triStartRow: TRI_DEFAULT_START_ROW, // row of the first set's first customer (1 = front)
   activeColor: 0,      // -1=eraser, 0-7=color
   activeType: BoxTypeOrder[0],
   tunnelMode: false,    // true when placing tunnels

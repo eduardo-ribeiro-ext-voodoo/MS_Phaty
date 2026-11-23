@@ -60,7 +60,7 @@ var SORT_VISIBLE_ROWS = 4;
 var TRI_ROWS = 3;
 // Placement defaults: rows counted from the front of the lane (1 = front)
 var TRI_DEFAULT_SPREAD = 4;     // customers of one set sit at most this many rows after its first one
-var TRI_DEFAULT_START_ROW = 1;  // row of each set's first customer
+var TRI_DEFAULT_START_ROW = 1;  // row of the first set's first customer (later sets follow it)
 
 // Snake order for 3x3 grid
 var SNAKE_ORDER = [
