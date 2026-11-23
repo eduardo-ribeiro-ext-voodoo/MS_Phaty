@@ -12,6 +12,8 @@ var editor = {
   sortCap: 3,
   lockButtons: 0,
   triColor: 0,         // number of Tri-Colored Customer sets (3 customers each)
+  triSpread: TRI_DEFAULT_SPREAD,     // max rows between customers of one set
+  triStartRow: TRI_DEFAULT_START_ROW, // row of each set's first customer (1 = front)
   activeColor: 0,      // -1=eraser, 0-7=color
   activeType: BoxTypeOrder[0],
   tunnelMode: false,    // true when placing tunnels
@@ -30,6 +32,8 @@ function editorInit() {
   editor.sortCap = 3;
   editor.lockButtons = 0;
   editor.triColor = 0;
+  editor.triSpread = TRI_DEFAULT_SPREAD;
+  editor.triStartRow = TRI_DEFAULT_START_ROW;
   editor.activeColor = 0;
   editor.activeType = BoxTypeOrder[0];
   editor.tunnelMode = false;
@@ -554,7 +558,9 @@ function editorRenderSettings() {
     { label: 'Marbles/Box', key: 'mrbPerBox', min: 1, max: 25, step: 1 },
     { label: 'Sort Cap', key: 'sortCap', min: 1, max: 9, step: 1 },
     { label: 'Lock Btns', key: 'lockButtons', min: 0, max: 5, step: 1 },
-    { label: 'Tri Sets', key: 'triColor', min: 0, max: 4, step: 1 }
+    { label: 'Tri Sets', key: 'triColor', min: 0, max: 4, step: 1 },
+    { label: 'Tri Spread', key: 'triSpread', min: 0, max: 10, step: 1 },
+    { label: 'Tri Start Row', key: 'triStartRow', min: 1, max: 10, step: 1 }
   ];
   for (var i = 0; i < fields.length; i++) {
     var f = fields[i];
@@ -585,6 +591,8 @@ function editorBuildLevel() {
     mrbPerBox: editor.mrbPerBox, sortCap: editor.sortCap,
     lockButtons: editor.lockButtons,
     triColor: editor.triColor,
+    triSpread: editor.triSpread,
+    triStartRow: editor.triStartRow,
     grid: editor.grid.slice()
   };
 }
@@ -644,6 +652,8 @@ function editorImportJSON() {
       if (lvl.sortCap) editor.sortCap = lvl.sortCap;
       if (lvl.lockButtons !== undefined) editor.lockButtons = lvl.lockButtons;
       if (lvl.triColor !== undefined) editor.triColor = lvl.triColor;
+      editor.triSpread = lvl.triSpread !== undefined ? lvl.triSpread : TRI_DEFAULT_SPREAD;
+      editor.triStartRow = lvl.triStartRow !== undefined ? lvl.triStartRow : TRI_DEFAULT_START_ROW;
       if (lvl.name) editor.name = lvl.name;
       if (lvl.desc) editor.desc = lvl.desc;
       var nameEl = document.getElementById('ed-name');
@@ -691,10 +701,13 @@ function editorSaveShowcase() {
     if (prototypeInfo.author) proto.author = prototypeInfo.author;
   }
 
+  // Make it the showcase in this browser right away
+  if (typeof setLocalShowcase === 'function') setLocalShowcase(JSON.parse(JSON.stringify(level)));
+
   var json = JSON.stringify(proto, null, 2);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(json).then(function() {
-      editorShowToast('prototype.json copied to clipboard!');
+      editorShowToast('Showcase updated! prototype.json copied');
     }).catch(function() {
       editorShowExportFallback(json);
       editorShowToast('Select all and copy the prototype.json');

@@ -12,9 +12,8 @@
 // 1x3 customers with those colors (same left-to-right order). A set
 // uses TRI_ROWS marbles of each color — with the default sort cap of 3
 // that is exactly one regular customer per color, so the level's marble
-// count stays balanced. The customers are NOT linked: each one is shuffled
-// into the queues on its own, so they land in different lanes and
-// positions, mixed with regular customers.
+// count stays balanced. The customers are NOT linked: placeTriCustomers
+// scatters them over the lanes, mixed with regular customers.
 function buildTriCustomers(sortPerColor, sets) {
   var out = [];
   var need = Math.max(1, Math.round(TRI_ROWS / SORT_CAP));
@@ -31,6 +30,53 @@ function buildTriCustomers(sortPerColor, sets) {
     }
   }
   return out;
+}
+
+// ── Place the tri customers into the lanes ──
+// Rows are queue positions counted from the front (row 1 = front).
+// The first customer of every set goes to startRow; the other customers
+// of the set go to a random row from startRow to startRow + spread, in a
+// random lane. Two tri customers never share the same lane and row.
+function placeTriCustomers(list, startRow, spread) {
+  var start = Math.max(0, startRow - 1);          // 0-based row index
+  var taken = {};                                  // 'lane:row' → true
+  var placed = [];                                 // { box, lane, row }
+  var sets = {};
+  for (var i = 0; i < list.length; i++) {
+    var k = list[i].triSet;
+    if (!sets[k]) sets[k] = [];
+    sets[k].push(list[i]);
+  }
+  // Every set's first customer is placed before any other customer, so the
+  // start row is kept free for the first customers.
+  for (var m = 0; m < TRI_ROWS; m++) {
+    for (var key in sets) {
+      var members = sets[key];
+      if (m >= members.length) continue;
+      // Candidate cells: first customer only at the start row, others in the window
+      var rowLo = start, rowHi = (m === 0) ? start : start + Math.max(0, spread);
+      var cells = [];
+      for (var r = rowLo; r <= rowHi; r++)
+        for (var lane = 0; lane < 4; lane++)
+          if (!taken[lane + ':' + r]) cells.push({ lane: lane, row: r });
+      // Window full (e.g. many sets on the same rows): take the next free row after it
+      var r2 = rowHi + 1;
+      while (cells.length === 0) {
+        for (var lane2 = 0; lane2 < 4; lane2++)
+          if (!taken[lane2 + ':' + r2]) cells.push({ lane: lane2, row: r2 });
+        r2++;
+      }
+      var pick = cells[Math.floor(Math.random() * cells.length)];
+      taken[pick.lane + ':' + pick.row] = true;
+      placed.push({ box: members[m], lane: pick.lane, row: pick.row });
+    }
+  }
+  // Insert front-to-back so earlier inserts keep their row
+  placed.sort(function (a, b) { return a.row - b.row; });
+  for (var p = 0; p < placed.length; p++) {
+    var col = sortCols[placed[p].lane];
+    col.splice(Math.min(placed[p].row, col.length), 0, placed[p].box);
+  }
 }
 
 // Free hole in this row for a marble of color ci, or -1.
