@@ -1,7 +1,7 @@
 {
   "name": "Tri-Colored Customers (scattered)",
   "description": "Tri-Colored Customers are 3-marble customers split into 3 color strips (one marble hole per color). Unlike the block version in the GDD, they are not joined into a 3x3 block: each one sits on its own in any lane, at any queue position, mixed with regular customers. At the front of its lane it takes one marble of each of its 3 colors, in any order, and completes when all 3 are in.",
-  "howToPlay": "Tap boxes to send marbles to the conveyor. Striped customers need one marble of each of their 3 colors; they only take marbles when they reach the front of their lane, and a color they already have keeps riding the belt. Clear every customer to win. Level Editor: the 'Tri Sets' setting adds sets of 3 Tri-Colored Customers (each set uses 3 marbles of 3 different colors); 'Tri Start Row' sets the row of each set's first customer (1 = front of the lane, default 1) and 'Tri Spread' sets how many rows after it the set's other customers can sit (default 4); lanes are random. 'Save as Showcase' makes the level this browser's showcase and copies prototype.json to share it.",
+  "howToPlay": "Tap boxes to send marbles to the conveyor. Striped customers need one marble of each of their 3 colors; they only take marbles when they reach the front of their lane, and a color they already have keeps riding the belt. Clear every customer to win. Level Editor: the 'Tri Sets' setting adds sets of 3 Tri-Colored Customers (each set uses 3 marbles of 3 different colors); 'Tri Start Row' sets the row of the first set's first customer (1 = front of the lane, default 1); each next set starts on the row after the last customer of the set before it. 'Tri Spread' sets how many rows after a set's start row its other customers can sit (default 4); lanes are random. 'Save as Showcase' makes the level this browser's showcase and copies prototype.json to share it.",
   "author": "Anastasiia Baeva",
   "showcaseLevel": {
     "name": "Custom Level",
@@ -10,6 +10,8 @@
     "sortCap": 3,
     "lockButtons": 0,
     "triColor": 3,
+    "triSpread": 4,
+    "triStartRow": 1,
     "grid": [
       {
         "wall": true
